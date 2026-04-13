@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+
+import os
+import json
+import sys
+import urllib.request
+import urllib.parse
+from concurrent.futures import ThreadPoolExecutor
+
+BASE_URL = "http://localhost:8000"
+DIST_DIR = os.path.join(os.path.dirname(__file__), "..", "dist", "v1", "2026")
+
+def fetch_json(url):
+    try:
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req) as response:
+            return json.loads(response.read().decode('utf-8'))
+    except Exception as e:
+        return None
+
+def verify_file(file_path):
+    relative_path = os.path.relpath(file_path, DIST_DIR)
+    parts = relative_path.split(os.sep)
+    
+    # Structure is: universal/{locale}.json OR nations/{nation}/{locale}.json OR dioceses/{diocese}/{locale}.json
+    year = 2026
+    params = {'year': year}
+    
+    if parts[0] == 'universal':
+        locale = parts[1].replace('.json', '')
+        params['locale'] = locale
+    elif parts[0] == 'nations':
+        params['nation'] = parts[1]
+        params['locale'] = parts[2].replace('.json', '')
+    elif parts[0] == 'dioceses':
+        params['diocese'] = parts[1]
+        params['locale'] = parts[2].replace('.json', '')
+    else:
+        return True, None # Not a calendar file we care about
+
+    url = f"{BASE_URL}/calendar?" + urllib.parse.urlencode(params)
+    
+    with open(file_path, 'r', encoding='utf-8') as f:
+        static_data = json.load(f)
+
+    api_data = fetch_json(url)
+    if api_data is None:
+        return False, f"Could not fetch from API: {url}"
+
+    # Strip volatile metadata
+    for data in (static_data, api_data):
+        if 'metadata' in data:
+            for k in ('generation_time', 'request_id', 'timestamp', 'date_time'):
+                data['metadata'].pop(k, None)
+
+    if static_data == api_data:
+        return True, None
+    else:
+        # Find the mismatch for reporting
+        mismatches = []
+        if static_data.keys() != api_data.keys():
+            mismatches.append(f"Root keys mismatch: Static={list(static_data.keys())}, API={list(api_data.keys())}")
+        else:
+            for key in api_data.keys():
+                if api_data[key] != static_data[key]:
+                    mismatches.append(f"Field '{key}' mismatch")
+        return False, f"Mismatch in {relative_path}: {'; '.join(mismatches)}"
+
+def main():
+    if not os.path.exists(DIST_DIR):
+        print(f"Error: {DIST_DIR} does not exist. Run pipeline.py first.")
+        sys.exit(1)
+
+    print(f"Scanning {DIST_DIR} for files...")
+    files_to_verify = []
+    for root, dirs, files in os.walk(DIST_DIR):
+        for file in files:
+            if file.endswith('.json'):
+                files_to_verify.append(os.path.join(root, file))
+
+    total = len(files_to_verify)
+    print(f"Verifying {total} files against live API...")
+    
+    failures = []
+    completed = 0
+    
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        results = list(executor.map(verify_file, files_to_verify))
+        for success, error in results:
+            completed += 1
+            if not success:
+                failures.append(error)
+                print(f"FAILED: {error}")
+            if completed % 50 == 0:
+                print(f"Progress: {completed}/{total} verified...")
+
+    print("\n" + "="*30)
+    print(f"Verification Complete!")
+    print(f"Total Files: {total}")
+    print(f"Passed: {total - len(failures)}")
+    print(f"Failed: {len(failures)}")
+    print("="*30)
+
+    if failures:
+        sys.exit(1)
+    else:
+        print("All static files match the API output exactly! (Zero 'boogs' found)")
+        sys.exit(0)
+
+if __name__ == '__main__':
+    main()

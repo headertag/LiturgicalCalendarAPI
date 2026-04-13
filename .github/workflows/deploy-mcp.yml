@@ -1,0 +1,43 @@
+name: Deploy Static MCP Server to Fly.io
+
+on:
+  push:
+    branches: [ development ]
+  workflow_dispatch:
+
+jobs:
+  bake-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python_version: '3.11'
+
+      - name: Install Python Dependencies
+        run: pip install fastmcp
+
+      - name: Build and Start PHP Engine (Factory)
+        run: |
+          docker build -t litcal-api .
+          docker run -d -p 8000:8000 --name litcal-api litcal-api
+          # Wait for server to be ready
+          timeout 60s bash -c 'until curl -s localhost:8000/metadata > /dev/null; do sleep 2; done'
+
+      - name: Bake Static JSON (Pipeline)
+        run: python3 scripts/pipeline.py
+
+      - name: Verify Static Data (QA)
+        run: python3 scripts/qa.py
+
+      - name: Stop PHP Engine
+        run: docker stop litcal-api
+
+      - name: Deploy to Fly.io
+        uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --dockerfile Dockerfile.mcp --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

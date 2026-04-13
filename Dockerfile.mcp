@@ -1,0 +1,18 @@
+# Dockerfile.mcp
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install MCP requirements
+RUN pip install --no-cache-dir fastmcp
+
+# Copy the static data generated during the CI build
+COPY dist/ /app/dist/
+# Copy the MCP server script
+COPY scripts/mcp_server.py /app/mcp_server.py
+
+# Expose port for Fly.io
+EXPOSE 8080
+
+# Run the MCP server in SSE mode
+CMD ["fastmcp", "run", "--transport", "sse", "--host", "0.0.0.0", "--port", "8080", "mcp_server.py"]
