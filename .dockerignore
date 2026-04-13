@@ -7,3 +7,7 @@
 !public/LitCalTestServer.php
 !public/index.php
 !.env.example
+!dist/
+!scripts/mcp_server.py
+!fly.toml
+!Dockerfile.mcp
