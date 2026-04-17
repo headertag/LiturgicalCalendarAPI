@@ -1,3 +1,25 @@
+> ## Now live as an MCP server
+>
+> This repository is a fork of [Liturgical-Calendar/LiturgicalCalendarAPI](https://github.com/Liturgical-Calendar/LiturgicalCalendarAPI)
+> that additionally exposes the liturgical calendar over the [Model Context Protocol](https://modelcontextprotocol.io/) so LLM clients
+> can query it directly as a tool.
+>
+> **Endpoint:** 🥨 <https://liturgical.pretiola.org/mcp>
+>
+> ### How the static ±10 year JSON cache is built
+>
+> Rather than serving calendar responses through live PHP on every request, the MCP server is deployed with a pre-baked JSON cache:
+>
+> 1. On each push to `development`, the CI workflow (`.github/workflows/deploy-mcp.yml`) builds the PHP API as a Docker image and runs it locally.
+> 2. `scripts/pipeline.py` queries `/metadata` to enumerate every universal, national, and diocesan calendar, then calls `/calendar` for each
+>    `(calendar, locale, year)` combination across a sliding window of the current year ± 10 years (21 years total).
+> 3. Each response is written to `dist/v1/{year}/{category}/{identifier}/{locale}.json`. `scripts/qa.py` then validates the resulting tree.
+> 4. `Dockerfile.mcp` copies `dist/` and `scripts/mcp_server.py` (a FastMCP server using the Streamable HTTP transport) into a slim Python image
+>    and deploys it to Fly.io.
+>
+> The MCP tools (`list_available_calendars`, `get_calendar`, …) then serve answers directly from the baked JSON files — no PHP runtime needed at
+> request time. The window slides forward automatically on each redeploy, so the cache stays centered on the current year.
+
 <table class="validations">
     <thead>
         <tr>
