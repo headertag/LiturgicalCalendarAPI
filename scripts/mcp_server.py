@@ -188,11 +188,21 @@ def list_available_calendars(
     _fetched_urls: Optional[List[Any]] = None,
 ) -> Dict[str, Any]:
     """
-    List every universal, national, and diocesan calendar available in the baked
-    cache, with their supported locales and the covered year range.
+    WHEN TO USE: first call in any new conversation — enumerates valid nation
+    codes, diocese ids, locales, and the covered year range so subsequent
+    tool calls don't guess.
 
-    Use this first to discover which `nation` codes, `diocese` ids, and `locale`
-    values are valid before calling the other tools.
+    TOOL MAP (read this once, pick the right tool per question):
+      • Single date ("what's today's feast?")        → get_liturgy_of_the_day
+      • Known event name ("when is St. Francis?")    → search_liturgical_event
+      • Whole-month overview ("solemnities in Oct")  → get_*_calendar(month=N)
+      • Whole year (rare — large)                    → get_*_calendar (compact)
+      • Full detail (readings, etc.)                 → detailed=True or
+                                                       get_liturgy_of_the_day
+
+    Universal vs national: "IT" is the nation code for Italy; "it" is the
+    Italian language. They are not interchangeable — use get_national_calendar
+    with `nation="IT"` for Italy, not get_general_calendar with `locale="it"`.
     """
     metadata = _load_metadata().get("litcal_metadata", {})
     years: List[int] = []
@@ -233,26 +243,24 @@ def get_general_calendar(
     _fetched_urls: Optional[List[Any]] = None,
 ) -> Any:
     """
-    Return the General Roman Calendar (the universal calendar) for a given year.
+    WHEN TO USE: the UNIVERSAL (General Roman) calendar only. For a country
+    use `get_national_calendar` — "IT" is Italy (nation), "it" is just the
+    Italian locale. Not interchangeable.
 
-    This is the UNIVERSAL calendar only. For a specific country's calendar, use
-    `get_national_calendar` instead. 'IT' is the nation code for Italy; 'it' is
-    merely the Italian language — they are not interchangeable.
+    For a single date use `get_liturgy_of_the_day`; for a specific event name
+    use `search_liturgical_event`. Pass `month=N` to trim ~12x.
 
-    Response size: by default each event is projected to a compact form
-    (event_key, name, date, grade, grade_lcl, color, liturgical_season_lcl)
-    since a full-year response can exceed 100k tokens otherwise. Use
-    `month=1..12` to narrow to a single month (~40 events), or `detailed=True`
-    to get full records including `readings`, day/month name variants, etc.
-    For single-event lookups prefer `get_liturgy_of_the_day` or
-    `search_liturgical_event`.
+    Compact by default (~20k tokens/year): event_key, name, date, grade,
+    grade_lcl, color, liturgical_season_lcl. Set `detailed=True` only if you
+    need readings, day/month name variants, common_lcl, etc. (~5x larger).
 
     Args:
         year: Four-digit year as a string, e.g. "2026".
-        locale: Language code: "en", "it", "fr", "la", etc. Regional forms like
-            "en_US" are accepted and truncated to the base language.
-        month: Optional month filter, 1..12.
-        detailed: If True, return full event records (large).
+        locale: Language code: "en", "it", "fr", "la", etc. Regional forms
+            ("en_US") are truncated to the base language.
+        month: Optional 1..12 filter. Strongly recommended — drops response
+            to ~40 events.
+        detailed: Full event records including `readings`. Large.
     """
     data = _load_general(year, locale)
     if isinstance(data, dict) and "error" in data:
@@ -272,23 +280,28 @@ def get_national_calendar(
     _fetched_urls: Optional[List[Any]] = None,
 ) -> Any:
     """
-    Return the liturgical calendar for a specific NATION.
+    WHEN TO USE: a specific country's calendar. `nation` is a country code
+    (e.g. "IT", "US"); it is NOT a language. For Italian-language universal
+    calendar use get_general_calendar(locale="it") instead.
 
-    Events particular to the nation (not present in the General Roman Calendar,
-    or marked with bracketed region tags like '[USA]') are flagged with
-    `"is_particular": true` so the caller can highlight them.
+    Events particular to the nation (not in the General Roman Calendar, or
+    tagged like "[USA]") are flagged `is_particular: true` so you can cite
+    what's specific to this nation vs. universal.
 
-    Response size: events are compact by default. Use `month=1..12` to narrow
-    or `detailed=True` for full records. For a single date or saint, prefer
-    `get_liturgy_of_the_day` / `search_liturgical_event`.
+    For a single date use `get_liturgy_of_the_day(category="nations", ...)`;
+    for a named saint use `search_liturgical_event(nation=...)`. Pass `month=N`
+    to trim whole-year responses.
+
+    Compact by default. Set `detailed=True` only for readings/day-name fields.
 
     Args:
-        nation: ISO 3166-1 alpha-2 country code, uppercase. Examples: "IT" (Italy),
-            "US" (United States), "CA" (Canada), "HR" (Croatia), "NL" (Netherlands).
+        nation: ISO 3166-1 alpha-2 country code, uppercase. E.g. "IT", "US",
+            "CA", "HR", "NL". Call `list_available_calendars` for the full list.
         year: Four-digit year as a string.
-        locale: Language code. Use `list_available_calendars` to see supported locales.
-        month: Optional month filter, 1..12.
-        detailed: If True, return full event records (large).
+        locale: Language code. Each nation supports a specific set (see
+            `list_available_calendars`).
+        month: Optional 1..12 filter — strongly recommended for year queries.
+        detailed: Full records (large).
     """
     national = _load_national(year, nation, locale)
     if isinstance(national, dict) and "error" in national:
@@ -308,20 +321,23 @@ def get_diocesan_calendar(
     _fetched_urls: Optional[List[Any]] = None,
 ) -> Any:
     """
-    Return the liturgical calendar for a specific DIOCESE. Events particular to
-    the diocese (vs. the General Roman Calendar) are flagged with
-    `"is_particular": true`.
+    WHEN TO USE: a specific diocese's calendar (rare — only use when the
+    question explicitly names a diocese). For a country, use
+    `get_national_calendar`. For a single date use `get_liturgy_of_the_day`.
 
-    Response size: events are compact by default. Use `month=1..12` to narrow
-    or `detailed=True` for full records.
+    Events particular to the diocese are flagged `is_particular: true`.
+
+    Compact by default; pass `month=N` for a month view, `detailed=True` for
+    full records including readings.
 
     Args:
-        diocese: Diocese identifier, lowercase, typically suffixed with the ISO
-            country code. Example: "romamo_it" for the Diocese of Rome.
+        diocese: Diocese identifier, lowercase, suffixed with the ISO country
+            code. E.g. "romamo_it" (Diocese of Rome). Call
+            `list_available_calendars` for available ids.
         year: Four-digit year as a string.
         locale: Language code.
-        month: Optional month filter, 1..12.
-        detailed: If True, return full event records (large).
+        month: Optional 1..12 filter.
+        detailed: Full records (large).
     """
     data = _load_diocesan(year, diocese, locale)
     if isinstance(data, dict) and "error" in data:
@@ -340,15 +356,20 @@ def get_liturgy_of_the_day(
     _fetched_urls: Optional[List[Any]] = None,
 ) -> Any:
     """
-    Return celebrations for a specific date, from the universal calendar or a
-    nation/diocese.
+    WHEN TO USE: any question about a SINGLE DATE — "today's feast", "what's
+    celebrated on 2026-04-05?", "liturgy for Christmas". This is the cheapest
+    and most detailed tool: returns full event records (including readings
+    when available) since at most a handful of events share a date.
+
+    Prefer this over get_*_calendar whenever the user is asking about one day.
 
     Args:
         date: Target date in YYYY-MM-DD format. Defaults to today.
         category: "universal" | "nations" | "dioceses".
         identifier: Required for "nations" (e.g. "IT") and "dioceses"
-            (e.g. "romamo_it"). Ignored for "universal".
-        locale: Language code.
+            (e.g. "romamo_it"); ignored for "universal".
+        locale: Language code. National/diocesan calendars expect a locale
+            supported by that calendar (see `list_available_calendars`).
     """
     if not date:
         date = datetime.date.today().isoformat()
@@ -398,15 +419,22 @@ def search_liturgical_event(
     _fetched_urls: Optional[List[Any]] = None,
 ) -> List[Dict[str, Any]]:
     """
-    Substring search over event names and event_keys within a single calendar
-    resolved from (diocese | nation | universal) for a given year.
+    WHEN TO USE: the user names a specific event — "when is St. Francis's
+    feast?", "Advent date", "Easter 2026". Returns only matching events
+    (full records) so the payload stays small even for common queries.
+
+    Much cheaper than pulling a whole calendar and grepping locally.
+
+    Case-insensitive substring match on the event's `name` and `event_key`
+    in the requested locale. Pass `nation` or `diocese` to search within a
+    particular calendar; otherwise searches the universal calendar.
 
     Args:
         year: Four-digit year as a string.
-        query: Search string, e.g. "Easter", "Peter", "Advent".
+        query: Search string, e.g. "Easter", "Peter", "Advent", "Francis".
         nation: Optional nation code (e.g. "IT"). Ignored if `diocese` is set.
         diocese: Optional diocese id (e.g. "romamo_it").
-        locale: Language code.
+        locale: Language code — searches that locale's translated names.
     """
     if diocese:
         data = _load_diocesan(year, diocese, locale)
