@@ -126,4 +126,24 @@ def search_liturgical_event(
     return matches
 
 if __name__ == "__main__":
-    mcp.run()
+    from starlette.middleware import Middleware
+    from starlette.middleware.cors import CORSMiddleware
+
+    # MCP Streamable HTTP transport (2025-03-26 spec). Single endpoint at /mcp.
+    # Permissive CORS so browser-based MCP clients (llama-server UI, Claude Desktop
+    # web flows, etc.) can reach it; Mcp-Session-Id must be in expose_headers.
+    cors = Middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["Mcp-Session-Id"],
+    )
+    port = int(os.environ.get("PORT", "8080"))
+    mcp.run(
+        transport="http",
+        host="0.0.0.0",
+        port=port,
+        middleware=[cors],
+        stateless_http=True,
+    )

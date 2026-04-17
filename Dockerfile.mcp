@@ -14,5 +14,6 @@ COPY scripts/mcp_server.py /app/scripts/mcp_server.py
 # Expose port for Fly.io
 EXPOSE 8080
 
-# Run the MCP server in SSE mode
-CMD ["fastmcp", "run", "--transport", "sse", "--host", "0.0.0.0", "--port", "8080", "scripts/mcp_server.py"]
+# Run the MCP server via Streamable HTTP (2025-03-26 spec) with CORS enabled.
+# Endpoint: /mcp
+CMD ["python", "scripts/mcp_server.py"]
