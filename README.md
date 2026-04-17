@@ -17,8 +17,22 @@
 > 4. `Dockerfile.mcp` copies `dist/` and `scripts/mcp_server.py` (a FastMCP server using the Streamable HTTP transport) into a slim Python image
 >    and deploys it to Fly.io.
 >
-> The MCP tools (`list_available_calendars`, `get_calendar`, …) then serve answers directly from the baked JSON files — no PHP runtime needed at
+> The MCP tools then serve answers directly from the baked JSON files — no PHP runtime needed at
 > request time. The window slides forward automatically on each redeploy, so the cache stays centered on the current year.
+>
+> ### Available tools
+>
+> The tool surface is split by calendar category so the model can't conflate a nation with a language
+> (e.g. `'IT'` the country vs. `'it'` the Italian locale):
+>
+> - `list_available_calendars` — enumerate universal/national/diocesan calendars with their supported locales and the covered year range.
+> - `get_general_calendar(year, locale)` — the universal General Roman Calendar.
+> - `get_national_calendar(nation, year, locale)` — a country's calendar (e.g. `nation='IT'`), with events particular to the nation flagged via `is_particular: true`.
+> - `get_diocesan_calendar(diocese, year, locale)` — a diocese's calendar (e.g. `diocese='romamo_it'`), same particular-event flagging.
+> - `get_liturgy_of_the_day(date, category, identifier, locale)` — celebrations for a single YYYY-MM-DD from any calendar.
+> - `search_liturgical_event(year, query, nation?, diocese?, locale)` — substring search over event names / keys.
+>
+> Particular-celebration marking and the split-tool design are adapted from [CatholicOS/liturgical-calendar-mcp](https://github.com/CatholicOS/liturgical-calendar-mcp).
 
 <table class="validations">
     <thead>

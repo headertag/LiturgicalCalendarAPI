@@ -11,7 +11,9 @@ import time
 YEAR_WINDOW = 10
 
 BASE_URL = "http://localhost:8000"
-DIST_DIR = os.path.join(os.path.dirname(__file__), "..", "dist", "v1")
+DIST_ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "dist"))
+DIST_DIR = os.path.join(DIST_ROOT, "v1")
+METADATA_OUT = os.path.join(DIST_ROOT, "metadata.json")
 
 def fetch_json(url):
     try:
@@ -51,6 +53,10 @@ def main():
         return
     
     metadata = data['litcal_metadata']
+    os.makedirs(DIST_ROOT, exist_ok=True)
+    with open(METADATA_OUT, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    print(f"Wrote {METADATA_OUT}")
     current_year = datetime.date.today().year
     years = range(current_year - YEAR_WINDOW, current_year + YEAR_WINDOW + 1)
     print(f"Baking years {years.start}–{years.stop - 1} (current year {current_year} ± {YEAR_WINDOW})")
