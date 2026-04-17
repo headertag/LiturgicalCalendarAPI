@@ -8,11 +8,11 @@ RUN pip install --no-cache-dir fastmcp
 
 # Copy the static data generated during the CI build
 COPY dist/ /app/dist/
-# Copy the MCP server script
-COPY scripts/mcp_server.py /app/mcp_server.py
+# Copy the MCP server script (preserve scripts/ layout so DIST_DIR resolves correctly)
+COPY scripts/mcp_server.py /app/scripts/mcp_server.py
 
 # Expose port for Fly.io
 EXPOSE 8080
 
 # Run the MCP server in SSE mode
-CMD ["fastmcp", "run", "--transport", "sse", "--host", "0.0.0.0", "--port", "8080", "mcp_server.py"]
+CMD ["fastmcp", "run", "--transport", "sse", "--host", "0.0.0.0", "--port", "8080", "scripts/mcp_server.py"]
