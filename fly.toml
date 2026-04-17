@@ -13,19 +13,7 @@ primary_region = "ord"
   min_machines_running = 0
   processes = ["app"]
 
-[[services]]
-  protocol = "tcp"
-  internal_port = 8080
-  
-  [[services.ports]]
-    port = 80
-    handlers = ["http"]
-  
-  [[services.ports]]
-    port = 443
-    handlers = ["tls", "http"]
-
-  [services.concurrency]
+  [http_service.concurrency]
     type = "connections"
     hard_limit = 25
     soft_limit = 20
