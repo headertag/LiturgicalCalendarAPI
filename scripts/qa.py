@@ -8,7 +8,7 @@ import urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 
 BASE_URL = "http://localhost:8000"
-DIST_DIR = os.path.join(os.path.dirname(__file__), "..", "dist", "v1", "2026")
+DIST_ROOT = os.path.join(os.path.dirname(__file__), "..", "dist", "v1")
 
 def fetch_json(url):
     try:
@@ -18,12 +18,13 @@ def fetch_json(url):
     except Exception as e:
         return None
 
-def verify_file(file_path):
-    relative_path = os.path.relpath(file_path, DIST_DIR)
+def verify_file(args):
+    file_path, year_dir = args
+    year = int(os.path.basename(year_dir))
+    relative_path = os.path.relpath(file_path, year_dir)
     parts = relative_path.split(os.sep)
-    
+
     # Structure is: universal/{locale}.json OR nations/{nation}/{locale}.json OR dioceses/{diocese}/{locale}.json
-    year = 2026
     params = {'year': year}
     
     if parts[0] == 'universal':
@@ -67,16 +68,26 @@ def verify_file(file_path):
         return False, f"Mismatch in {relative_path}: {'; '.join(mismatches)}"
 
 def main():
-    if not os.path.exists(DIST_DIR):
-        print(f"Error: {DIST_DIR} does not exist. Run pipeline.py first.")
+    if not os.path.exists(DIST_ROOT):
+        print(f"Error: {DIST_ROOT} does not exist. Run pipeline.py first.")
         sys.exit(1)
 
-    print(f"Scanning {DIST_DIR} for files...")
+    year_dirs = sorted(
+        os.path.join(DIST_ROOT, name) for name in os.listdir(DIST_ROOT)
+        if name.isdigit() and os.path.isdir(os.path.join(DIST_ROOT, name))
+    )
+    if not year_dirs:
+        print(f"Error: no year directories found under {DIST_ROOT}.")
+        sys.exit(1)
+
+    years_span = f"{os.path.basename(year_dirs[0])}–{os.path.basename(year_dirs[-1])}"
+    print(f"Scanning {DIST_ROOT} for files across {len(year_dirs)} years ({years_span})...")
     files_to_verify = []
-    for root, dirs, files in os.walk(DIST_DIR):
-        for file in files:
-            if file.endswith('.json'):
-                files_to_verify.append(os.path.join(root, file))
+    for year_dir in year_dirs:
+        for root, dirs, files in os.walk(year_dir):
+            for file in files:
+                if file.endswith('.json'):
+                    files_to_verify.append((os.path.join(root, file), year_dir))
 
     total = len(files_to_verify)
     print(f"Verifying {total} files against live API...")

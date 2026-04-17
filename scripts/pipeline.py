@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 
+import datetime
 import os
 import json
 import urllib.request
 import urllib.parse
 import time
+
+# Window of years to bake: current year ± YEAR_WINDOW (inclusive on both sides).
+YEAR_WINDOW = 10
 
 BASE_URL = "http://localhost:8000"
 DIST_DIR = os.path.join(os.path.dirname(__file__), "..", "dist", "v1")
@@ -47,29 +51,32 @@ def main():
         return
     
     metadata = data['litcal_metadata']
-    year = 2026
+    current_year = datetime.date.today().year
+    years = range(current_year - YEAR_WINDOW, current_year + YEAR_WINDOW + 1)
+    print(f"Baking years {years.start}–{years.stop - 1} (current year {current_year} ± {YEAR_WINDOW})")
     tasks = []
-    
-    # Universal Calendars
-    for locale in metadata.get('locales', []):
-        output_file = os.path.join(DIST_DIR, str(year), "universal", f"{locale}.json")
-        tasks.append((year, None, None, locale, output_file))
 
-    # National Calendars
-    for calendar in metadata.get('national_calendars', []):
-        nation = calendar['calendar_id']
-        for locale_full in calendar['locales']:
-            locale = locale_full.split('_')[0]
-            output_file = os.path.join(DIST_DIR, str(year), "nations", nation, f"{locale}.json")
-            tasks.append((year, nation, None, locale, output_file))
+    for year in years:
+        # Universal Calendars
+        for locale in metadata.get('locales', []):
+            output_file = os.path.join(DIST_DIR, str(year), "universal", f"{locale}.json")
+            tasks.append((year, None, None, locale, output_file))
 
-    # Diocesan Calendars
-    for calendar in metadata.get('diocesan_calendars', []):
-        diocese = calendar['calendar_id']
-        for locale_full in calendar['locales']:
-            locale = locale_full.split('_')[0]
-            output_file = os.path.join(DIST_DIR, str(year), "dioceses", diocese, f"{locale}.json")
-            tasks.append((year, None, diocese, locale, output_file))
+        # National Calendars
+        for calendar in metadata.get('national_calendars', []):
+            nation = calendar['calendar_id']
+            for locale_full in calendar['locales']:
+                locale = locale_full.split('_')[0]
+                output_file = os.path.join(DIST_DIR, str(year), "nations", nation, f"{locale}.json")
+                tasks.append((year, nation, None, locale, output_file))
+
+        # Diocesan Calendars
+        for calendar in metadata.get('diocesan_calendars', []):
+            diocese = calendar['calendar_id']
+            for locale_full in calendar['locales']:
+                locale = locale_full.split('_')[0]
+                output_file = os.path.join(DIST_DIR, str(year), "dioceses", diocese, f"{locale}.json")
+                tasks.append((year, None, diocese, locale, output_file))
                 
     print(f"Executing {len(tasks)} generation tasks sequentially to avoid server race conditions...")
     
