@@ -106,17 +106,20 @@ def _extract_iso_date(raw: Any) -> Optional[str]:
 
 
 # Fields kept in compact projection. Drops readings, day/month name variants,
-# grade_abbr/display, event_idx, psalter_week, common_lcl — ~5x smaller payload.
+# grade_abbr/display, event_idx, psalter_week, common_lcl, color, grade_lcl,
+# liturgical_season_lcl — keep only what's needed to answer "what" and "when".
 _COMPACT_FIELDS = (
     "event_key",
     "name",
     "date",
     "grade",
-    "grade_lcl",
-    "color",
-    "liturgical_season_lcl",
     "is_particular",
 )
+
+# Grade >= 6 = Solemnity or Feast of the Lord (the liturgically significant
+# days most questions are actually about). Used as the default filter when
+# no month is specified so year-overview queries stay within context.
+HIGHLIGHT_GRADE_THRESHOLD = 6
 
 
 def _compact_event(event: Dict[str, Any]) -> Dict[str, Any]:
@@ -157,10 +160,18 @@ def _shape_calendar(
 ) -> Dict[str, Any]:
     """Trim a full calendar response for LLM consumption.
 
-    Drops the verbose `messages` log array, optionally filters to a single
-    month, and projects to compact event records unless `detailed=True`.
+    Filter order:
+      1. `month=N` → narrow to that month (all grades).
+      2. else if not `detailed` → default to solemnities + feasts of the Lord
+         (grade >= 6) so year-overview queries stay small. Weekdays and
+         optional memorials are omitted unless the caller asks for a month
+         or for detailed data.
+      3. `detailed=True` returns full event records; otherwise events are
+         projected to _COMPACT_FIELDS.
     """
     litcal = data.get("litcal", [])
+    filter_applied = "none"
+
     if month is not None:
         if not 1 <= month <= 12:
             return {"error": f"month must be 1..12, got {month}"}
@@ -168,10 +179,19 @@ def _shape_calendar(
         litcal = [
             e for e in litcal if (_extract_iso_date(e.get("date")) or "")[4:8] == tag
         ]
+        filter_applied = f"month={month:02d}"
+    elif not detailed:
+        litcal = [
+            e for e in litcal if (e.get("grade", 0) or 0) >= HIGHLIGHT_GRADE_THRESHOLD
+        ]
+        filter_applied = "highlights (grade>=6: solemnities + feasts of the Lord)"
+
     if not detailed:
         litcal = [_compact_event(e) for e in litcal]
+
     return {
         "settings": data.get("settings", {}),
+        "filter_applied": filter_applied,
         "count": len(litcal),
         "litcal": litcal,
     }
@@ -196,9 +216,12 @@ def list_available_calendars(
       • Single date ("what's today's feast?")        → get_liturgy_of_the_day
       • Known event name ("when is St. Francis?")    → search_liturgical_event
       • Whole-month overview ("solemnities in Oct")  → get_*_calendar(month=N)
-      • Whole year (rare — large)                    → get_*_calendar (compact)
+      • Year overview (solemnities only, default)    → get_*_calendar
       • Full detail (readings, etc.)                 → detailed=True or
                                                        get_liturgy_of_the_day
+
+    By default get_*_calendar returns only solemnities + feasts of the Lord
+    (grade >= 6, ~25 events/year). Pass `month=1..12` for full-month detail.
 
     Universal vs national: "IT" is the nation code for Italy; "it" is the
     Italian language. They are not interchangeable — use get_national_calendar
@@ -247,12 +270,17 @@ def get_general_calendar(
     use `get_national_calendar` — "IT" is Italy (nation), "it" is just the
     Italian locale. Not interchangeable.
 
-    For a single date use `get_liturgy_of_the_day`; for a specific event name
-    use `search_liturgical_event`. Pass `month=N` to trim ~12x.
+    For a single date use `get_liturgy_of_the_day`; for a named event use
+    `search_liturgical_event`.
 
-    Compact by default (~20k tokens/year): event_key, name, date, grade,
-    grade_lcl, color, liturgical_season_lcl. Set `detailed=True` only if you
-    need readings, day/month name variants, common_lcl, etc. (~5x larger).
+    Default response shape (both apply unless overridden):
+      • HIGHLIGHTS ONLY — solemnities + feasts of the Lord (grade >= 6),
+        ~25 events/year. Weekdays and optional memorials are omitted.
+        Pass `month=1..12` to get the full month instead.
+      • COMPACT fields only: event_key, name, date, grade. Pass
+        `detailed=True` for readings, day/month name variants, etc.
+
+    `filter_applied` in the response tells you which default was used.
 
     Args:
         year: Four-digit year as a string, e.g. "2026".
@@ -289,10 +317,15 @@ def get_national_calendar(
     what's specific to this nation vs. universal.
 
     For a single date use `get_liturgy_of_the_day(category="nations", ...)`;
-    for a named saint use `search_liturgical_event(nation=...)`. Pass `month=N`
-    to trim whole-year responses.
+    for a named saint use `search_liturgical_event(nation=...)`.
 
-    Compact by default. Set `detailed=True` only for readings/day-name fields.
+    Default response shape:
+      • HIGHLIGHTS ONLY — solemnities + feasts of the Lord (grade >= 6),
+        ~25 events/year. Pass `month=1..12` for a full month view.
+      • COMPACT fields: event_key, name, date, grade, is_particular.
+        Pass `detailed=True` for readings, day-name variants, etc.
+
+    `filter_applied` in the response tells you which default was used.
 
     Args:
         nation: ISO 3166-1 alpha-2 country code, uppercase. E.g. "IT", "US",
@@ -327,8 +360,9 @@ def get_diocesan_calendar(
 
     Events particular to the diocese are flagged `is_particular: true`.
 
-    Compact by default; pass `month=N` for a month view, `detailed=True` for
-    full records including readings.
+    Default response: highlights only (grade >= 6) in compact fields. Pass
+    `month=1..12` for a full month, or `detailed=True` for full records.
+    `filter_applied` in the response confirms which default was used.
 
     Args:
         diocese: Diocese identifier, lowercase, suffixed with the ISO country
