@@ -42,10 +42,10 @@ function generateCalendar(int $year, ?string $nation, ?string $diocese, string $
     ];
 
     if ($nation !== null) {
-        $queryParams['nation'] = $nation;
+        $queryParams['national_calendar'] = $nation;
     }
     if ($diocese !== null) {
-        $queryParams['diocese'] = $diocese;
+        $queryParams['diocesan_calendar'] = $diocese;
     }
 
     $request = new ServerRequest('GET', '/calendar', [], null, '1.1', [

@@ -31,10 +31,10 @@ def verify_file(args):
         locale = parts[1].replace('.json', '')
         params['locale'] = locale
     elif parts[0] == 'nations':
-        params['nation'] = parts[1]
+        params['national_calendar'] = parts[1]
         params['locale'] = parts[2].replace('.json', '')
     elif parts[0] == 'dioceses':
-        params['diocese'] = parts[1]
+        params['diocesan_calendar'] = parts[1]
         params['locale'] = parts[2].replace('.json', '')
     else:
         return True, None # Not a calendar file we care about

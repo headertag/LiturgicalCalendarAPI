@@ -30,9 +30,9 @@ def generate_calendar(year, nation, diocese, locale, output_file):
 
     params = {'year': year, 'locale': locale}
     if nation:
-        params['nation'] = nation
+        params['national_calendar'] = nation
     if diocese:
-        params['diocese'] = diocese
+        params['diocesan_calendar'] = diocese
 
     url = f"{BASE_URL}/calendar?" + urllib.parse.urlencode(params)
     data = fetch_json(url)
