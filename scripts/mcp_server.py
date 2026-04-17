@@ -105,6 +105,78 @@ def _extract_iso_date(raw: Any) -> Optional[str]:
     return None
 
 
+# Fields kept in compact projection. Drops readings, day/month name variants,
+# grade_abbr/display, event_idx, psalter_week, common_lcl — ~5x smaller payload.
+_COMPACT_FIELDS = (
+    "event_key",
+    "name",
+    "date",
+    "grade",
+    "grade_lcl",
+    "color",
+    "liturgical_season_lcl",
+    "is_particular",
+)
+
+
+def _compact_event(event: Dict[str, Any]) -> Dict[str, Any]:
+    return {k: event[k] for k in _COMPACT_FIELDS if k in event}
+
+
+def _load_general(year: str, locale: str) -> Any:
+    return _read_json(_resolve_path(year, "universal", None, locale))
+
+
+def _load_national(year: str, nation: str, locale: str) -> Any:
+    nation = (nation or "").upper()
+    if not nation:
+        return {"error": "Missing `nation` parameter. Example: nation='IT' for Italy."}
+    national = _read_json(_resolve_path(year, "nations", nation, locale))
+    if isinstance(national, dict) and "error" in national:
+        return national
+    general = _load_general(year, locale)
+    if isinstance(general, dict) and "error" not in general:
+        national = _mark_particular_celebrations(national, general)
+    return national
+
+
+def _load_diocesan(year: str, diocese: str, locale: str) -> Any:
+    if not diocese:
+        return {"error": "Missing `diocese` parameter. Example: diocese='romamo_it'."}
+    data = _read_json(_resolve_path(year, "dioceses", diocese, locale))
+    if isinstance(data, dict) and "error" in data:
+        return data
+    general = _load_general(year, locale)
+    if isinstance(general, dict) and "error" not in general:
+        data = _mark_particular_celebrations(data, general)
+    return data
+
+
+def _shape_calendar(
+    data: Dict[str, Any], month: Optional[int], detailed: bool
+) -> Dict[str, Any]:
+    """Trim a full calendar response for LLM consumption.
+
+    Drops the verbose `messages` log array, optionally filters to a single
+    month, and projects to compact event records unless `detailed=True`.
+    """
+    litcal = data.get("litcal", [])
+    if month is not None:
+        if not 1 <= month <= 12:
+            return {"error": f"month must be 1..12, got {month}"}
+        tag = f"-{month:02d}-"
+        litcal = [
+            e for e in litcal if (_extract_iso_date(e.get("date")) or "")[4:8] == tag
+        ]
+    if not detailed:
+        litcal = [_compact_event(e) for e in litcal]
+    return {
+        "settings": data.get("settings", {}),
+        "count": len(litcal),
+        "litcal": litcal,
+    }
+
+
 # Every tool accepts the _conversation_id / _trace_id / _fetched_urls metadata
 # kwargs that some MCP clients inject, so pydantic validation doesn't reject them.
 
@@ -154,24 +226,38 @@ def list_available_calendars(
 def get_general_calendar(
     year: str,
     locale: str = "en",
+    month: Optional[int] = None,
+    detailed: bool = False,
     _conversation_id: Optional[str] = None,
     _trace_id: Optional[str] = None,
     _fetched_urls: Optional[List[Any]] = None,
 ) -> Any:
     """
-    Return the General Roman Calendar (the universal calendar) for a given year
-    in the requested language.
+    Return the General Roman Calendar (the universal calendar) for a given year.
 
     This is the UNIVERSAL calendar only. For a specific country's calendar, use
     `get_national_calendar` instead. 'IT' is the nation code for Italy; 'it' is
     merely the Italian language — they are not interchangeable.
 
+    Response size: by default each event is projected to a compact form
+    (event_key, name, date, grade, grade_lcl, color, liturgical_season_lcl)
+    since a full-year response can exceed 100k tokens otherwise. Use
+    `month=1..12` to narrow to a single month (~40 events), or `detailed=True`
+    to get full records including `readings`, day/month name variants, etc.
+    For single-event lookups prefer `get_liturgy_of_the_day` or
+    `search_liturgical_event`.
+
     Args:
         year: Four-digit year as a string, e.g. "2026".
         locale: Language code: "en", "it", "fr", "la", etc. Regional forms like
             "en_US" are accepted and truncated to the base language.
+        month: Optional month filter, 1..12.
+        detailed: If True, return full event records (large).
     """
-    return _read_json(_resolve_path(year, "universal", None, locale))
+    data = _load_general(year, locale)
+    if isinstance(data, dict) and "error" in data:
+        return data
+    return _shape_calendar(data, month, detailed)
 
 
 @mcp.tool()
@@ -179,6 +265,8 @@ def get_national_calendar(
     nation: str,
     year: str,
     locale: str = "en",
+    month: Optional[int] = None,
+    detailed: bool = False,
     _conversation_id: Optional[str] = None,
     _trace_id: Optional[str] = None,
     _fetched_urls: Optional[List[Any]] = None,
@@ -190,23 +278,22 @@ def get_national_calendar(
     or marked with bracketed region tags like '[USA]') are flagged with
     `"is_particular": true` so the caller can highlight them.
 
+    Response size: events are compact by default. Use `month=1..12` to narrow
+    or `detailed=True` for full records. For a single date or saint, prefer
+    `get_liturgy_of_the_day` / `search_liturgical_event`.
+
     Args:
         nation: ISO 3166-1 alpha-2 country code, uppercase. Examples: "IT" (Italy),
             "US" (United States), "CA" (Canada), "HR" (Croatia), "NL" (Netherlands).
         year: Four-digit year as a string.
-        locale: Language code. Use `list_available_calendars` to see which locales
-            each nation supports.
+        locale: Language code. Use `list_available_calendars` to see supported locales.
+        month: Optional month filter, 1..12.
+        detailed: If True, return full event records (large).
     """
-    nation = (nation or "").upper()
-    if not nation:
-        return {"error": "Missing `nation` parameter. Example: nation='IT' for Italy."}
-    national = _read_json(_resolve_path(year, "nations", nation, locale))
+    national = _load_national(year, nation, locale)
     if isinstance(national, dict) and "error" in national:
         return national
-    general = _read_json(_resolve_path(year, "universal", None, locale))
-    if isinstance(general, dict) and "error" not in general:
-        national = _mark_particular_celebrations(national, general)
-    return national
+    return _shape_calendar(national, month, detailed)
 
 
 @mcp.tool()
@@ -214,6 +301,8 @@ def get_diocesan_calendar(
     diocese: str,
     year: str,
     locale: str = "en",
+    month: Optional[int] = None,
+    detailed: bool = False,
     _conversation_id: Optional[str] = None,
     _trace_id: Optional[str] = None,
     _fetched_urls: Optional[List[Any]] = None,
@@ -223,21 +312,21 @@ def get_diocesan_calendar(
     the diocese (vs. the General Roman Calendar) are flagged with
     `"is_particular": true`.
 
+    Response size: events are compact by default. Use `month=1..12` to narrow
+    or `detailed=True` for full records.
+
     Args:
         diocese: Diocese identifier, lowercase, typically suffixed with the ISO
             country code. Example: "romamo_it" for the Diocese of Rome.
         year: Four-digit year as a string.
         locale: Language code.
+        month: Optional month filter, 1..12.
+        detailed: If True, return full event records (large).
     """
-    if not diocese:
-        return {"error": "Missing `diocese` parameter. Example: diocese='romamo_it'."}
-    data = _read_json(_resolve_path(year, "dioceses", diocese, locale))
+    data = _load_diocesan(year, diocese, locale)
     if isinstance(data, dict) and "error" in data:
         return data
-    general = _read_json(_resolve_path(year, "universal", None, locale))
-    if isinstance(general, dict) and "error" not in general:
-        data = _mark_particular_celebrations(data, general)
-    return data
+    return _shape_calendar(data, month, detailed)
 
 
 @mcp.tool()
@@ -270,11 +359,11 @@ def get_liturgy_of_the_day(
 
     year = str(target.year)
     if category == "universal":
-        data = get_general_calendar(year, locale)
+        data = _load_general(year, locale)
     elif category == "nations":
-        data = get_national_calendar(identifier, year, locale)
+        data = _load_national(year, identifier, locale)
     elif category == "dioceses":
-        data = get_diocesan_calendar(identifier, year, locale)
+        data = _load_diocesan(year, identifier, locale)
     else:
         return {
             "error": f"Unknown category '{category}'. "
@@ -320,11 +409,11 @@ def search_liturgical_event(
         locale: Language code.
     """
     if diocese:
-        data = get_diocesan_calendar(diocese, year, locale)
+        data = _load_diocesan(year, diocese, locale)
     elif nation:
-        data = get_national_calendar(nation, year, locale)
+        data = _load_national(year, nation, locale)
     else:
-        data = get_general_calendar(year, locale)
+        data = _load_general(year, locale)
 
     if isinstance(data, dict) and "error" in data:
         return [data]
