@@ -1,4 +1,22 @@
 {
+    "ChristmasWeekdayDec26": {
+        "first_reading": "Acts 6:8-10; 7:54-59",
+        "responsorial_psalm": "Psalm 31:3cd-4, 6, 8ab, 16bc, 17",
+        "gospel_acclamation": "Psalm 118:26a, 27a",
+        "gospel": "Matthew 10:17-22"
+    },
+    "ChristmasWeekdayDec27": {
+        "first_reading": "1 John 1:1-4",
+        "responsorial_psalm": "Psalm 97:1-2, 5-6, 11-12",
+        "gospel_acclamation": "",
+        "gospel": "John 20:1a, 2-8"
+    },
+    "ChristmasWeekdayDec28": {
+        "first_reading": "1 John 1:5-2:2",
+        "responsorial_psalm": "Psalm 124:2-3, 4-5, 7cd-8",
+        "gospel_acclamation": "",
+        "gospel": "Matthew 2:13-18"
+    },
     "ChristmasWeekdayDec29": {
         "first_reading": "1 John 2:3-11",
         "responsorial_psalm": "Psalm 96:1-2a, 2b-3, 5b-6",
@@ -6,16 +24,16 @@
         "gospel": "Luke 2:22-35"
     },
     "ChristmasWeekdayDec30": {
-        "first_reading": "",
-        "responsorial_psalm": "",
+        "first_reading": "1 John 2:12-17",
+        "responsorial_psalm": "Psalm 96:7-8a, 8b-9, 10",
         "gospel_acclamation": "",
-        "gospel": ""
+        "gospel": "Luke 2:36-40"
     },
     "ChristmasWeekdayDec31": {
-        "first_reading": "",
-        "responsorial_psalm": "",
-        "gospel_acclamation": "",
-        "gospel": ""
+        "first_reading": "1 John 2:18-21",
+        "responsorial_psalm": "Psalm 96:1-2, 11-12, 13",
+        "gospel_acclamation": "John 1:14, 12",
+        "gospel": "John 1:1-18"
     },
     "ChristmasWeekdayJan2": {
         "first_reading": "",
