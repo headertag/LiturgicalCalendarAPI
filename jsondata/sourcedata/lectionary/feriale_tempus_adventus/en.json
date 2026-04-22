@@ -8,13 +8,13 @@
     "AdventWeekday1Tuesday": {
         "first_reading": "Isaiah 11:1-10",
         "responsorial_psalm": "Psalm 72:1-2, 7-8, 12-13, 17",
-        "gospel_acclamation": "",
+        "gospel_acclamation": "Psalm 85:8",
         "gospel": "Luke 10:21-24"
     },
     "AdventWeekday1Wednesday": {
         "first_reading": "Isaiah 25:6-10a",
         "responsorial_psalm": "Psalm 23:1-3a, 3b-4, 5, 6",
-        "gospel_acclamation": "",
+        "gospel_acclamation": "Isaiah 40:9-10",
         "gospel": "Matthew 15:29-37"
     },
     "AdventWeekday1Thursday": {
@@ -26,7 +26,7 @@
     "AdventWeekday1Friday": {
         "first_reading": "Isaiah 29:17-24",
         "responsorial_psalm": "Psalm 27:1, 4, 13-14",
-        "gospel_acclamation": "",
+        "gospel_acclamation": "Isaiah 40:9-10",
         "gospel": "Matthew 9:27-31"
     },
     "AdventWeekday1Saturday": {
@@ -38,19 +38,19 @@
     "AdventWeekday2Monday": {
         "first_reading": "Isaiah 35:1-10",
         "responsorial_psalm": "Psalm 85:9ab, 10, 11-12, 13-14",
-        "gospel_acclamation": "",
+        "gospel_acclamation": "Luke 3:4, 6",
         "gospel": "Luke 5:17-26"
     },
     "AdventWeekday2Tuesday": {
         "first_reading": "Isaiah 40:1-11",
         "responsorial_psalm": "Psalm 96:1-2, 3, 10ac, 11-12, 13",
-        "gospel_acclamation": "",
+        "gospel_acclamation": "Luke 3:4, 6",
         "gospel": "Matthew 18:12-14"
     },
     "AdventWeekday2Wednesday": {
         "first_reading": "Isaiah 40:25-31",
         "responsorial_psalm": "Psalm 103:1-2, 3-4, 8, 10",
-        "gospel_acclamation": "",
+        "gospel_acclamation": "Isaiah 45:8",
         "gospel": "Matthew 11:28-30"
     },
     "AdventWeekday2Thursday": {
@@ -62,7 +62,7 @@
     "AdventWeekday2Friday": {
         "first_reading": "Isaiah 48:17-19",
         "responsorial_psalm": "Psalm 1:1-2, 3, 4, 6",
-        "gospel_acclamation": "",
+        "gospel_acclamation": "Isaiah 45:8",
         "gospel": "Matthew 11:16-19"
     },
     "AdventWeekday2Saturday": {
@@ -80,7 +80,7 @@
     "AdventWeekday3Tuesday": {
         "first_reading": "Zephaniah 3:1-2, 9-13",
         "responsorial_psalm": "Psalm 34:2-3, 6-7, 17-18, 19, 23",
-        "gospel_acclamation": "",
+        "gospel_acclamation": "Psalm 85:8",
         "gospel": "Matthew 21:28-32"
     },
     "AdventWeekday3Wednesday": {
@@ -98,55 +98,55 @@
     "AdventWeekday3Friday": {
         "first_reading": "Isaiah 56:1-3a, 6-8",
         "responsorial_psalm": "Psalm 67:2-3, 5, 7-8",
-        "gospel_acclamation": "",
+        "gospel_acclamation": "Isaiah 61:1",
         "gospel": "John 5:33-36"
     },
     "AdventWeekdayDec17": {
         "first_reading": "Genesis 49:2, 8-10",
         "responsorial_psalm": "Psalm 72:1-2, 3-4ab, 7-8, 17",
-        "gospel_acclamation": "",
+        "gospel_acclamation": "O Wisdom",
         "gospel": "Matthew 1:1-17"
     },
     "AdventWeekdayDec18": {
         "first_reading": "Jeremiah 23:5-8",
         "responsorial_psalm": "Psalm 72:1-2, 12-13, 18-19",
-        "gospel_acclamation": "",
+        "gospel_acclamation": "O Sacred Lord",
         "gospel": "Matthew 1:18-25"
     },
     "AdventWeekdayDec19": {
         "first_reading": "Judges 13:2-7, 24-25a",
         "responsorial_psalm": "Psalm 71:3-4a, 5-6ab, 16-17",
-        "gospel_acclamation": "",
+        "gospel_acclamation": "O Flower of Jesse's stem",
         "gospel": "Luke 1:5-25"
     },
     "AdventWeekdayDec20": {
         "first_reading": "Isaiah 7:10-14",
         "responsorial_psalm": "Psalm 24:1-2, 3-4ab, 5-6",
-        "gospel_acclamation": "",
+        "gospel_acclamation": "O Key of David",
         "gospel": "Luke 1:26-38"
     },
     "AdventWeekdayDec21": {
         "first_reading": "Song of Songs 2:8-14|Zephaniah 3:14-18a",
         "responsorial_psalm": "Psalm 33:2-3, 11-12, 20-21",
-        "gospel_acclamation": "",
+        "gospel_acclamation": "O Radiant Dawn",
         "gospel": "Luke 1:39-45"
     },
     "AdventWeekdayDec22": {
         "first_reading": "1 Samuel 1:24-28",
         "responsorial_psalm": "1 Samuel 2:1, 4-5, 6-7, 8abcd",
-        "gospel_acclamation": "",
+        "gospel_acclamation": "O King of all nations",
         "gospel": "Luke 1:46-56"
     },
     "AdventWeekdayDec23": {
         "first_reading": "Malachi 3:1-4, 23-24",
         "responsorial_psalm": "Psalm 25:4-5ab, 8-9, 10, 14",
-        "gospel_acclamation": "",
+        "gospel_acclamation": "O Emmanuel",
         "gospel": "Luke 1:57-66"
     },
     "AdventWeekdayDec24": {
         "first_reading": "2 Samuel 7:1-5, 8b-12, 14a, 16",
         "responsorial_psalm": "Psalm 89:2-3, 4-5, 27, 29",
-        "gospel_acclamation": "",
+        "gospel_acclamation": "O Radiant Dawn",
         "gospel": "Luke 1:67-79"
     }
 }
