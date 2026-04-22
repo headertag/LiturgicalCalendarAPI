@@ -78,7 +78,7 @@
         "gospel": "John 6:22-29"
     },
     "EasterWeekday3Tuesday": {
-        "first_reading": "Acts 7:51—8:1a",
+        "first_reading": "Acts 7:51\u20148:1a",
         "responsorial_psalm": "Psalm 31:3cd-4, 6 and 7b and 8a, 17 and 21ab",
         "gospel_acclamation": "John 6:35ab",
         "gospel": "John 6:30-35"
@@ -108,10 +108,10 @@
         "gospel": ""
     },
     "EasterWeekday4Monday": {
-        "first_reading": "",
-        "responsorial_psalm": "",
-        "gospel_acclamation": "",
-        "gospel": ""
+        "first_reading": "Acts 11:1-18",
+        "responsorial_psalm": "Psalm 42:2-3; 43:3, 4",
+        "gospel_acclamation": "John 10:14",
+        "gospel": "John 10:1-10"
     },
     "EasterWeekday4Tuesday": {
         "first_reading": "",
