@@ -28,7 +28,7 @@ def generate_calendar(year, nation, diocese, locale, output_file):
     if os.path.exists(output_file):
         return output_file
 
-    params = {'year': year, 'locale': locale}
+    params = {'year': year, 'locale': locale, 'year_type': 'CIVIL'}
     if nation:
         params['national_calendar'] = nation
     if diocese:
