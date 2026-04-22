@@ -39,7 +39,7 @@ def verify_file(args):
     else:
         return True, None # Not a calendar file we care about
 
-    url = f"{BASE_URL}/calendar?" + urllib.parse.urlencode(params)
+    url = f"{BASE_URL}/calendar?" + urllib.parse.urlencode(params) + "&year_type=CIVIL"
     
     with open(file_path, 'r', encoding='utf-8') as f:
         static_data = json.load(f)
